@@ -1,0 +1,26 @@
+# --- model artifacts: never commit these ---
+models/
+*.safetensors
+*.bin
+*.gguf
+*.pt
+checkpoint-*/
+
+# --- runtime ---
+uploads/
+logs/
+*.log
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# --- editors / os ---
+.DS_Store
+.vscode/
+.idea/

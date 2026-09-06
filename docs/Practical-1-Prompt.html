@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>-</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#practical-1--financial-compliance-and-advisory-engine"
+id="toc-practical-1--financial-compliance-and-advisory-engine">Practical
+1 — Financial Compliance and Advisory Engine</a>
+<ul>
+<li><a href="#simplified-development-prompt"
+id="toc-simplified-development-prompt">Simplified Development
+Prompt</a></li>
+</ul></li>
+<li><a href="#1-hardware-constraints" id="toc-1-hardware-constraints">1.
+HARDWARE CONSTRAINTS</a></li>
+<li><a href="#2-model-for-practical-1"
+id="toc-2-model-for-practical-1">2. MODEL FOR PRACTICAL 1</a></li>
+<li><a href="#3-training-must-be-separate-from-the-application"
+id="toc-3-training-must-be-separate-from-the-application">3. TRAINING
+MUST BE SEPARATE FROM THE APPLICATION</a>
+<ul>
+<li><a href="#a-training-machine" id="toc-a-training-machine">A.
+Training machine</a></li>
+<li><a href="#b-application-machine" id="toc-b-application-machine">B.
+Application machine</a></li>
+<li><a href="#handoff-between-the-two-machines"
+id="toc-handoff-between-the-two-machines">Handoff between the two
+machines</a></li>
+</ul></li>
+<li><a href="#4-resumable-training" id="toc-4-resumable-training">4.
+RESUMABLE TRAINING</a></li>
+<li><a href="#5-dataset-for-practical-1"
+id="toc-5-dataset-for-practical-1">5. DATASET FOR PRACTICAL 1</a></li>
+<li><a href="#6-web-interface" id="toc-6-web-interface">6. WEB
+INTERFACE</a></li>
+<li><a href="#7-repository-structure" id="toc-7-repository-structure">7.
+REPOSITORY STRUCTURE</a></li>
+<li><a href="#8-setup-and-run-instructions"
+id="toc-8-setup-and-run-instructions">8. SETUP AND RUN INSTRUCTIONS</a>
+<ul>
+<li><a href="#training-machine" id="toc-training-machine">Training
+machine</a></li>
+<li><a href="#application-machine"
+id="toc-application-machine">Application machine</a></li>
+</ul></li>
+<li><a href="#9-explicitly-out-of-scope-for-practical-1"
+id="toc-9-explicitly-out-of-scope-for-practical-1">9. EXPLICITLY OUT OF
+SCOPE FOR PRACTICAL 1</a></li>
+<li><a href="#10-acceptance-criteria"
+id="toc-10-acceptance-criteria">10. ACCEPTANCE CRITERIA</a></li>
+<li><a href="#11-disclaimer" id="toc-11-disclaimer">11.
+DISCLAIMER</a></li>
+</ul>
+</nav>
+<h1 id="practical-1--financial-compliance-and-advisory-engine">Practical
+1 — Financial Compliance and Advisory Engine</h1>
+<h2 id="simplified-development-prompt">Simplified Development
+Prompt</h2>
+<p>You are an expert AI engineer and full-stack developer specializing
+in production-quality LLM applications under severe hardware
+constraints.</p>
+<p>We are building a college project called:</p>
+<p><strong>Financial Compliance and Advisory Engine using Fine-tuned
+LLMs and Hybrid RAG</strong></p>
+<p>However, this is <strong>Practical 1 of 3</strong>, so DO NOT build
+the complete production system yet.</p>
+<p>The objective of Practical 1 is only to demonstrate that:</p>
+<ol type="1">
+<li>We have a small financial-compliance-focused language model.</li>
+<li>The model can be fine-tuned on a small dataset.</li>
+<li>The trained model/adapters are actually saved to disk.</li>
+<li>Training can be resumed if it is interrupted.</li>
+<li>A very small web interface is connected to the trained model.</li>
+<li>A user can upload a financial document and receive a small, simple
+analysis/result.</li>
+<li>The model training itself happens on a <strong>separate
+laptop</strong>, not on the development machine/server.</li>
+<li>The complete codebase should be suitable for pushing to a GitHub
+repository so another team member can clone it and train the model on
+their laptop.</li>
+</ol>
+<p>Do not over-engineer Practical 1. We need a working proof of concept
+that we can demonstrate.</p>
+<hr />
+<h1 id="1-hardware-constraints">1. HARDWARE CONSTRAINTS</h1>
+<p>The model-training laptop has:</p>
+<ul>
+<li>NVIDIA RTX 3050 Ti</li>
+<li>4 GB VRAM</li>
+<li>16 GB system RAM</li>
+<li>512 GB SSD</li>
+<li>Approximately 3–4 days available for training</li>
+</ul>
+<p>Because of this, training MUST be extremely VRAM-efficient.</p>
+<p>Use:</p>
+<ul>
+<li>4-bit quantization</li>
+<li>QLoRA</li>
+<li>LoRA adapters</li>
+<li>Gradient checkpointing</li>
+<li>Very small per-device batch size</li>
+<li>Gradient accumulation</li>
+<li>FP16 where supported</li>
+<li>Unsloth where compatible</li>
+<li>Hugging Face PEFT/Transformers</li>
+<li>Small sequence lengths</li>
+<li>Frequent checkpoints</li>
+</ul>
+<p>Do NOT attempt to train a large model.</p>
+<hr />
+<h1 id="2-model-for-practical-1">2. MODEL FOR PRACTICAL 1</h1>
+<p>Use a very small model that is realistic for an RTX 3050 Ti 4 GB
+GPU.</p>
+<p>Preferred order:</p>
+<ol type="1">
+<li><code>unsloth/Qwen2.5-0.5B-Instruct</code> — recommended first
+choice</li>
+<li><code>unsloth/Qwen2.5-1.5B-Instruct</code> — use only if the 0.5B
+model is insufficient and memory allows</li>
+<li>TinyLlama 1.1B as a fallback</li>
+</ol>
+<p>For Practical 1, prioritize <strong>successful training and
+resumability over model size or quality</strong>.</p>
+<p>The model should be fine-tuned to perform a very narrow task such
+as:</p>
+<blockquote>
+<p>Given a financial document snippet and a small set of regulatory
+information, identify whether there appears to be a compliance issue and
+return a short structured response.</p>
+</blockquote>
+<p>Do not attempt to make the model an authoritative legal advisor.</p>
+<p>The application must clearly state that the output is a
+<strong>prototype/demo and not legal or financial advice</strong>.</p>
+<hr />
+<h1 id="3-training-must-be-separate-from-the-application">3. TRAINING
+MUST BE SEPARATE FROM THE APPLICATION</h1>
+<p>This is extremely important.</p>
+<p>The project has two separate environments:</p>
+<h2 id="a-training-machine">A. Training machine</h2>
+<p>The other team member's laptop will be used for:</p>
+<ul>
+<li>Dataset preparation</li>
+<li>Model downloading</li>
+<li>QLoRA fine-tuning</li>
+<li>Checkpoint creation</li>
+<li>Resuming interrupted training</li>
+<li>Saving the final LoRA adapter/model</li>
+</ul>
+<p>The training code must NOT require the web application to be
+running.</p>
+<p>The training laptop should produce artifacts such as:</p>
+<pre class="text"><code>models/
+└── financial-compliance-qwen/
+    ├── checkpoint-100/
+    ├── checkpoint-200/
+    ├── checkpoint-300/
+    ├── ...
+    ├── final/
+    └── adapter_config.json</code></pre>
+<p>Only the <code>final/</code> directory (the LoRA adapter, tokenizer
+files and <code>adapter_config.json</code>) needs to be transferred to
+the application machine. Intermediate checkpoints stay on the training
+laptop.</p>
+<h2 id="b-application-machine">B. Application machine</h2>
+<p>The development machine runs only:</p>
+<ul>
+<li>The web interface</li>
+<li>Document upload and text extraction</li>
+<li>Inference against the trained adapter</li>
+</ul>
+<p>It must never attempt to train, and it must start cleanly even when
+no trained adapter is present yet (see the fallback rule in section
+6).</p>
+<h2 id="handoff-between-the-two-machines">Handoff between the two
+machines</h2>
+<ul>
+<li>The trained adapter is small (tens of MB). Transfer it by any
+convenient means: a release attachment, a shared drive, or a zip
+file.</li>
+<li>Do <strong>not</strong> commit model weights or checkpoints to Git.
+Add <code>models/</code> and <code>*.gguf</code>,
+<code>*.safetensors</code>, <code>*.bin</code> to
+<code>.gitignore</code>.</li>
+<li>Only code, configuration and the small dataset belong in the
+repository.</li>
+</ul>
+<hr />
+<h1 id="4-resumable-training">4. RESUMABLE TRAINING</h1>
+<p>Training may be interrupted (laptop sleep, power loss, thermal
+shutdown, a closed lid, or simply stopping for the night). Resuming must
+be trivial.</p>
+<p>Requirements:</p>
+<ul>
+<li>Save a checkpoint every N steps (start with
+<code>save_steps=100</code>).</li>
+<li>Keep a bounded number of checkpoints
+(<code>save_total_limit=3</code>) so the SSD does not fill up.</li>
+<li>The training script must accept a <code>--resume</code> flag.</li>
+<li>On <code>--resume</code>, automatically detect the newest
+<code>checkpoint-*</code> directory and continue from it via
+<code>trainer.train(resume_from_checkpoint=...)</code>.</li>
+<li>If no checkpoint exists, start from scratch without error.</li>
+<li>Optimizer state, scheduler state and the RNG seed must be restored,
+not just the weights — otherwise the resumed run is not equivalent.</li>
+<li>Log progress to a file so a crashed run can be diagnosed
+afterwards.</li>
+</ul>
+<p>The expected usage is:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> train.py                <span class="co"># fresh run</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> train.py <span class="at">--resume</span>       <span class="co"># continue after an interruption</span></span></code></pre></div>
+<hr />
+<h1 id="5-dataset-for-practical-1">5. DATASET FOR PRACTICAL 1</h1>
+<p>Keep the dataset deliberately small — a few hundred examples is
+enough to demonstrate that fine-tuning works.</p>
+<ul>
+<li>Store it in the repository as JSONL so it is diffable and
+reviewable.</li>
+<li>Use a single, consistent instruction format.</li>
+<li>Include both compliant and non-compliant examples so the model
+learns to distinguish them.</li>
+</ul>
+<p>Suggested record shape:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;instruction&quot;</span><span class="fu">:</span> <span class="st">&quot;Review the following financial document snippet for compliance issues.&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;input&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt;document snippet&gt;&quot;</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;output&quot;</span><span class="fu">:</span> <span class="st">&quot;{</span><span class="ch">\&quot;</span><span class="st">issue_found</span><span class="ch">\&quot;</span><span class="st">: true, </span><span class="ch">\&quot;</span><span class="st">category</span><span class="ch">\&quot;</span><span class="st">: </span><span class="ch">\&quot;</span><span class="st">disclosure</span><span class="ch">\&quot;</span><span class="st">, </span><span class="ch">\&quot;</span><span class="st">explanation</span><span class="ch">\&quot;</span><span class="st">: </span><span class="ch">\&quot;</span><span class="st">...</span><span class="ch">\&quot;</span><span class="st">}&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>The <code>output</code> should be a short structured response so the
+web interface can parse and display it. Do not aim for long free-form
+legal reasoning.</p>
+<hr />
+<h1 id="6-web-interface">6. WEB INTERFACE</h1>
+<p>Keep it minimal. A single page is sufficient.</p>
+<p>Required behaviour:</p>
+<ul>
+<li>Upload a financial document (PDF or TXT is enough for Practical
+1).</li>
+<li>Extract text from the upload.</li>
+<li>Send a snippet of that text to the fine-tuned model.</li>
+<li>Display the short structured analysis returned by the model.</li>
+<li>Display a persistent disclaimer stating that this is a prototype and
+<strong>not legal or financial advice</strong>.</li>
+</ul>
+<p>Explicitly out of scope for the interface in Practical 1: user
+accounts, databases, history, multi-document comparison, styling beyond
+the basics.</p>
+<p><strong>Fallback rule:</strong> if no trained adapter is found on
+disk, the application must still start and must show a clear message
+saying the model has not been trained yet — rather than crashing on
+import.</p>
+<hr />
+<h1 id="7-repository-structure">7. REPOSITORY STRUCTURE</h1>
+<p>The repository must be clonable and runnable by a team member who has
+never seen it. Aim for something close to:</p>
+<pre class="text"><code>.
+├── README.md
+├── requirements-train.txt      # training machine only (CUDA, bitsandbytes, peft)
+├── requirements-app.txt        # application machine only (web + inference)
+├── .gitignore                  # ignores models/, checkpoints, venvs, uploads
+├── data/
+│   └── train.jsonl
+├── train/
+│   ├── train.py                # QLoRA fine-tune, supports --resume
+│   └── config.yaml             # model id, LoRA rank, batch size, save_steps
+├── app/
+│   ├── main.py                 # web server
+│   ├── inference.py            # loads base model + LoRA adapter
+│   └── templates/
+└── docs/
+    └── practical-1-prompt.md   # this document</code></pre>
+<p>Two separate requirements files matter: the application machine
+should not be forced to install CUDA-only packages such as
+<code>bitsandbytes</code>.</p>
+<hr />
+<h1 id="8-setup-and-run-instructions">8. SETUP AND RUN INSTRUCTIONS</h1>
+<p>The README must contain copy-pasteable instructions for both
+machines.</p>
+<h2 id="training-machine">Training machine</h2>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="op">&lt;</span>repo-url<span class="op">&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> <span class="op">&lt;</span>repo<span class="op">&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv .venv <span class="kw">&amp;&amp;</span> <span class="ex">.venv\Scripts\activate</span>     <span class="co"># Windows</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements-train.txt</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> train/train.py                              <span class="co"># or --resume</span></span></code></pre></div>
+<h2 id="application-machine">Application machine</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements-app.txt</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># copy the trained adapter into models/financial-compliance-qwen/final/</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> app/main.py</span></code></pre></div>
+<p>Document the expected VRAM usage and the approximate time per 100
+steps so the training team member knows whether the run is behaving
+normally.</p>
+<hr />
+<h1 id="9-explicitly-out-of-scope-for-practical-1">9. EXPLICITLY OUT OF
+SCOPE FOR PRACTICAL 1</h1>
+<p>Do not build these yet — they belong to Practicals 2 and 3:</p>
+<ul>
+<li>Hybrid RAG (vector search + keyword/BM25 retrieval)</li>
+<li>A regulatory document corpus and its ingestion pipeline</li>
+<li>Citation of specific regulations</li>
+<li>Evaluation harnesses and benchmark scoring</li>
+<li>Authentication, multi-user support, persistence</li>
+<li>Deployment, containerisation, CI/CD</li>
+<li>Any model larger than ~1.5B parameters</li>
+</ul>
+<p>If a design decision in Practical 1 would make these harder later,
+prefer the option that leaves the door open — but do not implement them
+now.</p>
+<hr />
+<h1 id="10-acceptance-criteria">10. ACCEPTANCE CRITERIA</h1>
+<p>Practical 1 is complete when all of the following can be demonstrated
+live:</p>
+<ol type="1">
+<li><code>train.py</code> runs on the 4 GB laptop without an
+out-of-memory error.</li>
+<li>Checkpoint directories appear on disk during training.</li>
+<li>Training is interrupted with Ctrl+C and resumed with
+<code>--resume</code>, and the step counter continues from where it
+stopped rather than restarting.</li>
+<li>A <code>final/</code> adapter directory exists after training.</li>
+<li>The web interface starts on the application machine.</li>
+<li>A document is uploaded and a short structured analysis is
+displayed.</li>
+<li>The disclaimer is visible on screen.</li>
+<li>A fresh <code>git clone</code> plus the README instructions
+reproduces the setup.</li>
+</ol>
+<hr />
+<h1 id="11-disclaimer">11. DISCLAIMER</h1>
+<p>This system is a student prototype built for coursework. Its output
+is generated by a small fine-tuned language model, is not verified
+against current regulations, and is <strong>not legal, financial or
+compliance advice</strong>. This disclaimer must appear in the README
+and in the web interface itself.</p>
+</body>
+</html>

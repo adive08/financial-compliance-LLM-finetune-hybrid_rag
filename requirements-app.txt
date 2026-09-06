@@ -1,0 +1,14 @@
+# Application machine only. No CUDA, no bitsandbytes.
+# Runs on CPU, Apple Silicon (MPS) or GPU.
+
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9   # required by FastAPI for file uploads
+jinja2>=3.1.0
+pypdf>=4.2.0
+
+# Inference stack. torch is imported lazily, so the web UI still boots
+# without it and shows a "model not available" message.
+torch>=2.2.0
+transformers>=4.44.0
+peft>=0.12.0
