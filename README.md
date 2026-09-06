@@ -9,6 +9,8 @@ be interrupted and resumed, the adapter is saved, and a minimal web interface
 loads it and analyses an uploaded document. The Hybrid RAG stage, the
 regulatory corpus and evaluation come later.
 
+**In a hurry?** [docs/RUNNING.md](docs/RUNNING.md) is the short runbook.
+
 > **Disclaimer.** This is a student prototype. Its output comes from a small
 > fine-tuned language model, is not checked against current regulations, and
 > is **not legal, financial or compliance advice.**
