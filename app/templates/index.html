@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Financial Compliance Engine — Practical 1</title>
+<title>Financial Compliance Engine</title>
 <style>
   :root {
     --bg: #f6f7f9; --card: #fff; --ink: #1a1d21; --muted: #5c6570;
@@ -11,33 +11,71 @@
     --warn-bg: #fdf3e3; --warn-line: #e8c98a; --warn-ink: #7a5312;
     --bad-bg: #fdeceb; --bad-line: #e9a9a4; --bad-ink: #8d2c24;
     --good-bg: #eaf6ee; --good-line: #a3d4b4; --good-ink: #1f6034;
+    --blue-bg: #eef3fd; --blue-line: #b9cdf2;
   }
   * { box-sizing: border-box; }
   body { margin: 0; padding: 2rem 1rem; background: var(--bg); color: var(--ink);
          font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 760px; margin: 0 auto; }
-  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
-  .sub { color: var(--muted); margin: 0 0 1.5rem; font-size: .9rem; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 1.45rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .8rem; }
+  h4 { margin: 0 0 .3rem; font-size: .8rem; text-transform: uppercase;
+       letter-spacing: .04em; color: var(--muted); }
+  .sub { color: var(--muted); margin: 0 0 1.2rem; font-size: .9rem; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
           padding: 1.25rem; margin-bottom: 1rem; }
   .banner { border-radius: 8px; padding: .8rem 1rem; margin-bottom: 1rem; font-size: .9rem; }
   .banner.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
   .banner.bad  { background: var(--bad-bg);  border: 1px solid var(--bad-line);  color: var(--bad-ink); }
-  input[type=file] { display: block; margin-bottom: 1rem; width: 100%; }
+  .banner.info { background: var(--blue-bg); border: 1px solid var(--blue-line); color: var(--accent); }
+  .row { display: flex; gap: .8rem; flex-wrap: wrap; align-items: flex-end; }
+  .row > div { flex: 1 1 220px; }
+  label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: .3rem; }
+  input[type=file], input[type=date] { display: block; width: 100%; padding: .5rem;
+         border: 1px solid var(--line); border-radius: 7px; background: #fff; font: inherit; }
+  input[type=file] { margin-bottom: 0; }
   button { background: var(--accent); color: #fff; border: 0; border-radius: 7px;
-           padding: .6rem 1.3rem; font-size: .95rem; cursor: pointer; }
+           padding: .62rem 1.3rem; font-size: .95rem; cursor: pointer; font-weight: 600; }
+  button.secondary { background: #fff; color: var(--accent); border: 1px solid var(--accent); }
   button:disabled { background: #9aa5b4; cursor: not-allowed; }
-  .verdict { display: flex; align-items: center; gap: .6rem; font-weight: 600;
-             padding: .7rem .9rem; border-radius: 8px; margin-bottom: 1rem; }
+  .verdict { display: flex; justify-content: space-between; gap: .8rem; align-items: center;
+             font-weight: 600; padding: .8rem 1rem; border-radius: 8px; margin-bottom: 1rem;
+             flex-wrap: wrap; }
   .verdict.issue { background: var(--bad-bg);  border: 1px solid var(--bad-line);  color: var(--bad-ink); }
   .verdict.clean { background: var(--good-bg); border: 1px solid var(--good-line); color: var(--good-ink); }
   .verdict.unknown { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
-  dl { display: grid; grid-template-columns: 8.5rem 1fr; gap: .45rem 1rem; margin: 0; }
+  .verdict .conf { font-size: .82rem; font-weight: 600; opacity: .85; }
+  dl { display: grid; grid-template-columns: 10rem 1fr; gap: .4rem 1rem; margin: 0; }
   dt { color: var(--muted); font-size: .85rem; }
-  dd { margin: 0; }
+  dd { margin: 0; word-break: break-word; }
   pre { background: #f2f4f7; border: 1px solid var(--line); border-radius: 7px;
         padding: .8rem; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;
         font-size: .82rem; max-height: 15rem; margin: 0; }
+  .violation { border: 1px solid var(--line); border-radius: 9px; padding: 1rem;
+               margin-bottom: .9rem; background: #fff; }
+  .violation-head { display: flex; gap: .55rem; align-items: center; flex-wrap: wrap;
+                    margin-bottom: .55rem; }
+  .vid { font-weight: 700; color: var(--accent); }
+  .sev { font-size: .7rem; font-weight: 700; letter-spacing: .04em; border-radius: 999px;
+         padding: .18rem .55rem; background: #eef0f3; color: var(--muted); }
+  .sev-high { background: var(--bad-bg); color: var(--bad-ink); }
+  .sev-medium { background: var(--warn-bg); color: var(--warn-ink); }
+  .sev-low { background: var(--blue-bg); color: var(--accent); }
+  .sev-none { background: var(--good-bg); color: var(--good-ink); }
+  .violation .conf { margin-left: auto; color: var(--muted); font-size: .78rem; }
+  .block { margin-top: .7rem; }
+  .fix { margin-top: .7rem; background: var(--good-bg); border: 1px solid var(--good-line);
+         border-radius: 8px; padding: .75rem .9rem; color: var(--good-ink); }
+  .fix h4 { color: var(--good-ink); }
+  .cite { margin-top: .7rem; background: var(--blue-bg); border: 1px solid var(--blue-line);
+          border-radius: 8px; padding: .75rem .9rem; font-size: .86rem; }
+  .cite h4 { color: var(--accent); }
+  .muted { color: var(--muted); font-size: .88rem; }
+  .badge { display: inline-block; font-size: .72rem; padding: .1rem .45rem;
+           border-radius: 999px; background: #eef0f3; color: var(--muted); margin-left: .3rem; }
+  details { margin-top: .6rem; }
+  summary { cursor: pointer; color: var(--muted); font-size: .85rem; font-weight: 600; }
+  .trace { font-size: .82rem; color: var(--muted); padding-left: 1.1rem; margin: .5rem 0 0; }
   footer { color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line);
            padding-top: 1rem; margin-top: 1.5rem; }
 </style>
@@ -46,7 +84,11 @@
 <div class="wrap">
 
   <h1>Financial Compliance and Advisory Engine</h1>
-  <p class="sub">Practical 1 &mdash; fine-tuned Qwen2.5-0.5B, single-snippet analysis.</p>
+  <p class="sub">
+    Hybrid Temporal RAG + multi-agent compliance review
+    {% if pipeline_mode == "single" %}<span class="badge">single-model mode</span>{% endif %}
+    {% if index_ready %}<span class="badge">{{ index_status.chunks }} regulation chunks</span>{% endif %}
+  </p>
 
   <div class="banner warn"><strong>Disclaimer.</strong> {{ disclaimer }}</div>
 
@@ -55,16 +97,36 @@
       <strong>Model not trained yet.</strong>
       No adapter found at <code>models/financial-compliance-qwen/final/</code>.
       Train it on the training laptop (<code>python train/train.py</code>) and copy
-      the <code>final/</code> folder here. The interface still runs so you can
-      check uploads and text extraction.
+      the <code>final/</code> folder here. Uploads and text extraction still work.
+    </div>
+  {% endif %}
+
+  {% if not index_ready %}
+    <div class="banner warn">
+      <strong>RAG index not built.</strong>
+      Documents will be analysed without regulatory citations. Build it with
+      <code>python scripts/build_rag_index.py</code>.
     </div>
   {% endif %}
 
   <form class="card" action="/analyze" method="post" enctype="multipart/form-data">
-    <label for="document"><strong>Upload a financial document</strong></label>
-    <p class="sub" style="margin:.3rem 0 .7rem">PDF, TXT, MD or CSV &mdash; up to 10&nbsp;MB.</p>
-    <input id="document" type="file" name="document" accept=".pdf,.txt,.md,.csv" required>
-    <button type="submit">Analyse</button>
+    <h2>Analyse a financial document</h2>
+    <div class="row">
+      <div>
+        <label for="document">Document</label>
+        <input id="document" type="file" name="document" accept=".pdf,.txt,.md,.csv" required>
+      </div>
+      <div>
+        <label for="as_of">Regulations in force as of</label>
+        <input id="as_of" type="date" name="as_of_date" value="{{ as_of_date or '' }}">
+      </div>
+      <div style="flex:0 0 auto">
+        <button type="submit">Analyse</button>
+      </div>
+    </div>
+    <p class="muted" style="margin:.7rem 0 0">PDF, TXT, MD or CSV &mdash; up to 10&nbsp;MB.
+      The document is split into segments and reviewed by the research, checker,
+      advisory and verifier agents.</p>
   </form>
 
   {% if error %}
@@ -72,31 +134,106 @@
   {% endif %}
 
   {% if result %}
+    {% set verdict = result.verdict %}
     <div class="card">
-      <h2 style="font-size:1.05rem;margin:0 0 .9rem">Result{% if filename %} &mdash; {{ filename }}{% endif %}</h2>
+      <div class="verdict {% if verdict == 'non_compliant' %}issue{% elif verdict == 'compliant' %}clean{% else %}unknown{% endif %}">
+        <span>
+          {% if verdict == "non_compliant" %}Potential compliance issues identified
+          {% elif verdict == "compliant" %}No compliance issue identified
+          {% else %}Manual review required{% endif %}
+        </span>
+        <span class="conf">Confidence {{ (result.confidence * 100) | round | int }}%</span>
+      </div>
 
-      {% if result.issue_found is none %}
-        <div class="verdict unknown">Model reply could not be parsed as JSON</div>
-      {% elif result.issue_found %}
-        <div class="verdict issue">Potential compliance issue identified</div>
-      {% else %}
-        <div class="verdict clean">No compliance issue identified in this snippet</div>
-      {% endif %}
+      <p style="margin:0 0 1rem">{{ result.summary }}</p>
 
       <dl>
-        <dt>Category</dt><dd>{{ result.category_label }}</dd>
-        <dt>Severity</dt><dd>{{ result.severity }}</dd>
-        <dt>Explanation</dt><dd>{{ result.explanation }}</dd>
+        <dt>Document</dt><dd>{{ result.document.filename }}</dd>
+        <dt>As-of date</dt><dd>{{ result.document.as_of_date }}</dd>
+        <dt>Segments analysed</dt><dd>{{ result.document.segments_analyzed }}</dd>
+        <dt>Regulations retrieved</dt><dd>{{ result.document.regulations_retrieved }}</dd>
       </dl>
+
+      {% if result.violations %}
+        <h2 style="margin-top:1.3rem">Findings ({{ result.violations | length }})</h2>
+        {% for v in result.violations %}
+          <div class="violation">
+            <div class="violation-head">
+              <span class="vid">{{ v.id }}</span>
+              <strong>{{ v.category_label }}</strong>
+              <span class="sev sev-{{ v.severity }}">{{ v.severity | upper }}</span>
+              <span class="conf">confidence {{ (v.confidence * 100) | round | int }}%</span>
+            </div>
+            <p style="margin:0">{{ v.explanation }}</p>
+
+            <div class="block">
+              <h4>Original snippet</h4>
+              <pre>{{ v.original_snippet }}</pre>
+            </div>
+
+            <div class="fix">
+              <h4>Suggested compliant wording</h4>
+              <p style="margin:0">{{ v.suggested_fix }}</p>
+            </div>
+
+            {% if v.cited_regulation %}
+              <div class="cite">
+                <h4>Cited regulation</h4>
+                <strong>{{ v.cited_regulation.title }}</strong>
+                {% if v.cited_regulation.section %}, Section {{ v.cited_regulation.section }}{% endif %}
+                {% if v.cited_regulation.authority %} &mdash; {{ v.cited_regulation.authority }}{% endif %}<br>
+                <span class="muted">
+                  {{ v.cited_regulation.doc_id }} &middot;
+                  effective {{ v.cited_regulation.effective_date }} &middot;
+                  updated {{ v.cited_regulation.last_updated }} &middot;
+                  {{ v.cited_regulation.temporal_status or v.cited_regulation.status }}
+                  {% if v.cited_regulation.superseded_by %}
+                    &middot; superseded by {{ v.cited_regulation.superseded_by }}
+                    on {{ v.cited_regulation.superseded_date }}
+                  {% endif %}
+                </span>
+              </div>
+            {% else %}
+              <p class="muted" style="margin:.7rem 0 0">
+                No regulation citation was available for this finding.
+              </p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="muted">No violation records were produced for the analysed excerpts.</p>
+      {% endif %}
+
+      {% if result.errors %}
+        <details>
+          <summary>Analysis notes ({{ result.errors | length }})</summary>
+          <ul class="trace">
+            {% for item in result.errors %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+        </details>
+      {% endif %}
+
+      {% if result.agent_trace %}
+        <details>
+          <summary>Agent trace</summary>
+          <ul class="trace">
+            {% for item in result.agent_trace %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+        </details>
+      {% endif %}
+
+      <form method="post" action="/report" style="margin-top:1rem">
+        <textarea name="payload" hidden>{{ result_json }}</textarea>
+        <button type="submit" class="secondary">Download PDF report</button>
+      </form>
     </div>
   {% endif %}
 
   {% if snippet %}
     <div class="card">
-      <h2 style="font-size:1.05rem;margin:0 0 .6rem">Snippet sent to the model</h2>
-      <p class="sub" style="margin:0 0 .7rem">
-        Practical 1 analyses the first portion of the document only. Whole-document
-        retrieval arrives with the Hybrid RAG stage.
+      <h2>Document preview</h2>
+      <p class="muted" style="margin:0 0 .7rem">
+        First portion of the extracted text. The full document is segmented for analysis.
       </p>
       <pre>{{ snippet }}</pre>
     </div>

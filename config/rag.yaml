@@ -1,0 +1,25 @@
+corpus:
+  path: "data/corpus/regulations.jsonl"
+
+embedding:
+  # auto -> fastembed when installed, deterministic hashing otherwise
+  backend: "auto"
+  model: "BAAI/bge-small-en-v1.5"
+  dim: 384
+
+retrieval:
+  top_k: 5
+  dense_candidates: 20
+  bm25_candidates: 20
+  rrf_k: 60
+  category_boost: 0.05
+
+chunking:
+  max_chars: 700
+  overlap_chars: 100
+
+storage:
+  dir: "storage"
+  collection: "regulations"
+  # auto -> qdrant local when installed, numpy otherwise
+  vector_backend: "auto"

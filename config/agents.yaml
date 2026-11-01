@@ -1,0 +1,22 @@
+pipeline:
+  # agents -> LangGraph multi-agent pipeline; single -> Practical 1 path
+  mode: "agents"
+  max_segments: 6
+  segment_chars: 1200
+  segment_overlap: 120
+  max_violations: 12
+
+research:
+  top_k: 5
+  per_segment_k: 3
+  max_regulations: 12
+  max_context_chars: 900
+
+advisory:
+  use_model: true
+  max_model_calls: 3
+  max_new_tokens: 90
+
+verifier:
+  confidence_threshold: 0.55
+  max_retries: 1

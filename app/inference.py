@@ -140,25 +140,37 @@ class ComplianceModel:
             model.eval()
             self._tokenizer, self._model, self._device = tokenizer, model, device
 
-    def analyze(self, snippet: str) -> dict:
+    def generate(self, messages: list[dict], max_new_tokens: int = MAX_NEW_TOKENS) -> str:
+        """Generate a raw continuation for the multi-agent layer."""
         self.load()
         import torch
 
         prompt = self._tokenizer.apply_chat_template(
-            build_messages(snippet), tokenize=False, add_generation_prompt=True)
+            messages, tokenize=False, add_generation_prompt=True)
         inputs = self._tokenizer(prompt, return_tensors="pt").to(self._device)
 
         with torch.no_grad():
             generated = self._model.generate(
                 **inputs,
-                max_new_tokens=MAX_NEW_TOKENS,
+                max_new_tokens=max_new_tokens,
                 do_sample=False,            # greedy: we want stable JSON
                 pad_token_id=self._tokenizer.pad_token_id,
             )
-        # Keep only the newly generated continuation.
-        reply = self._tokenizer.decode(
+        return self._tokenizer.decode(
             generated[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
-        return parse_model_output(reply)
+
+    def analyze(
+        self,
+        snippet: str,
+        regulations=None,
+        max_regulation_chars: int | None = None,
+    ) -> dict:
+        messages = build_messages(
+            snippet,
+            regulations=regulations,
+            max_regulation_chars=max_regulation_chars,
+        )
+        return parse_model_output(self.generate(messages))
 
 
 MODEL = ComplianceModel()

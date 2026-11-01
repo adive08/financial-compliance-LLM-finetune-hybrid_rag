@@ -1,34 +1,124 @@
-# Financial Compliance and Advisory Engine — Practical 1
+# Financial Compliance and Advisory Engine
 
-A proof of concept for the coursework project *Financial Compliance and
-Advisory Engine using Fine-tuned LLMs and Hybrid RAG*.
+A full-stack proof of concept for *Financial Compliance and Advisory Engine using
+Fine-tuned LLMs and Hybrid RAG*.
 
-**This is Practical 1 of 3.** Its only goal is to show the pipeline end to
-end: a small model is fine-tuned with QLoRA on a 4 GB laptop GPU, training can
-be interrupted and resumed, the adapter is saved, and a minimal web interface
-loads it and analyses an uploaded document. The Hybrid RAG stage, the
-regulatory corpus and evaluation come later.
+The project now has three layers:
 
-**In a hurry?** [docs/RUNNING.md](docs/RUNNING.md) is the short runbook.
+1. **Practical 1 base** — a QLoRA fine-tuned Qwen2.5-0.5B adapter, trained on a
+   small synthetic dataset, with resumable training and a FastAPI interface.
+2. **Hybrid Temporal RAG** — a versioned regulatory corpus, dense + BM25
+   retrieval, and as-of-date filtering so superseded regulations are not cited.
+3. **Multi-agent review** — a LangGraph graph of Research, Compliance Checker,
+   Advisory and Verifier agents that produces structured, cited findings and a
+   download-ready PDF report.
 
 > **Disclaimer.** This is a student prototype. Its output comes from a small
-> fine-tuned language model, is not checked against current regulations, and
-> is **not legal, financial or compliance advice.**
+> fine-tuned language model with retrieval over a synthetic regulatory corpus,
+> is not checked against current regulations, and is **not legal, financial or
+> compliance advice.**
 
 ---
 
-## How the two machines split up
+## Architecture
 
-| | Training laptop (RTX 3050 Ti, 4 GB) | Application machine |
-|---|---|---|
-| Installs | `requirements-train.txt` | `requirements-app.txt` |
-| Needs CUDA | yes | no |
-| Runs | `train/train.py` | `app/main.py` |
-| Produces | `models/financial-compliance-qwen/final/` | the demo UI |
+```text
+                         ┌──────────────────────────────────────────┐
+  PDF / TXT / CSV / MD   │                FastAPI app               │
+  ───────────────────────►  /analyze  /api/analyze  /report           │
+                         └──────────────────┬───────────────────────┘
+                                            │
+                                  run_analysis(text, as_of)
+                                            │
+                         ┌──────────────────▼───────────────────────┐
+                         │        LangGraph multi-agent flow        │
+                         │                                          │
+                         │  ResearchAgent                           │
+                         │      │ hybrid dense + BM25 retrieval     │
+                         │      │ temporal as-of filtering          │
+                         │      ▼                                   │
+                         │  ComplianceCheckerAgent                  │
+                         │      │ fine-tuned adapter + regulations  │
+                         │      ▼                                   │
+                         │  AdvisoryAgent                           │
+                         │      │ model rewrite or safe template    │
+                         │      ▼                                   │
+                         │  VerifierAgent                           │
+                         │      │ dedupe, ground citations, score   │
+                         │      └──── low confidence? retry once ──┐│
+                         │                                          ││
+                         └──────────────────┬───────────────────────┘│
+                                            │                        │
+                                            ▼                        │
+                         structured JSON + UI + PDF report ◄──────────┘
+```
 
-The two never run at the same time and neither imports the other. The only
-thing that moves between them is the `final/` adapter folder — a few tens of
-MB. **Model weights are gitignored; do not commit them.**
+### How a document flows
+
+1. Text is extracted from the upload and split into overlapping segments
+   (default 1200 characters, maximum 6 segments on a 4 GB machine).
+2. **ResearchAgent** builds a query per segment plus a global query, searches the
+   hybrid index, merges duplicate chunks and applies the as-of temporal filter.
+3. **ComplianceCheckerAgent** calls the existing fine-tuned adapter once per
+   segment. Retrived regulations are added as a short, separate context block;
+   the original training prompt is preserved when no regulations are supplied.
+4. **AdvisoryAgent** proposes corrected wording for each finding, using the
+   model for the first few findings and a category template as a fallback.
+5. **VerifierAgent** removes duplicates, resolves every citation against a real
+   retrieved chunk, calculates confidence, chooses the verdict and finalises the
+   JSON. If confidence is below the threshold it requests one bounded retry.
+6. The UI renders the findings; `/api/analyze` returns the same JSON; `/report`
+   renders a professional PDF.
+
+### Hybrid Temporal RAG
+
+- **Corpus**: `data/corpus/regulations.jsonl`, generated by
+  `data/corpus/make_corpus.py`. It contains 38 synthetic RBI/SEBI/IRDAI-style
+  clauses across the seven violation categories, including four deliberately
+  superseded versions.
+- **Dense retrieval**: `fastembed` (`BAAI/bge-small-en-v1.5`, ONNX, CPU) when
+  installed; otherwise a deterministic hashing embedder. Running embeddings on
+  the CPU leaves the 4 GB GPU for the language model.
+- **Keyword retrieval**: Okapi BM25 implemented in `rag/store.py`.
+- **Fusion**: Reciprocal Rank Fusion (`RRF`, k=60), with a soft category boost.
+- **Vector store**: Qdrant in local/embedded mode by default; a numpy cosine
+  store is used when `qdrant-client` is unavailable.
+- **Temporal metadata**: every chunk carries `effective_date`, `last_updated`,
+  `superseded_by`, `superseded_date` and `status`. At query time, only versions
+  where `effective_date <= as_of` and not yet superseded are eligible.
+- **Grounded citations**: the verifier only cites chunks that were actually
+  retrieved; invented document IDs are impossible.
+
+### Structured output
+
+`run_analysis()` returns JSON in this shape:
+
+```json
+{
+  "schema_version": "2.0",
+  "document": {"filename": "...", "as_of_date": "...", "segments_analyzed": 2},
+  "violations": [{
+    "id": "V1",
+    "category": "kyc_aml",
+    "category_label": "KYC / AML",
+    "severity": "high",
+    "explanation": "...",
+    "original_snippet": "...",
+    "suggested_fix": "...",
+    "cited_regulation": {"doc_id": "...", "title": "...", "section": "...",
+                          "effective_date": "...", "status": "current"},
+    "confidence": 0.9
+  }],
+  "verdict": "non_compliant",
+  "confidence": 0.9,
+  "summary": "...",
+  "agent_trace": ["research: ...", "checker: ...", "advisory: ...", "verifier: ..."],
+  "errors": []
+}
+```
+
+Confidence combines model-output validity, citation grounding, severity
+completeness and retrieval support. See `agents/nodes/verifier.py`.
 
 ---
 
@@ -37,71 +127,222 @@ MB. **Model weights are gitignored; do not commit them.**
 ```text
 .
 ├── data/
-│   ├── make_dataset.py     # regenerates the JSONL from templates (seeded)
-│   ├── train.jsonl         # 250 examples
-│   └── eval.jsonl          # 60 examples
-├── train/
-│   ├── train.py            # QLoRA fine-tune, --resume, --dry-run
-│   └── config.yaml         # every hyperparameter lives here
+│   ├── make_dataset.py            # training/eval JSONL generator (unchanged)
+│   ├── train.jsonl / eval.jsonl   # Practical 1 dataset
+│   └── corpus/
+│       ├── make_corpus.py         # synthetic, versioned regulations
+│       ├── regulations.jsonl      # source-of-truth corpus
+│       └── raw/                   # optional real PDFs for later ingestion
+├── rag/
+│   ├── corpus.py                  # load + validate regulations
+│   ├── chunking.py                # sentence-aware chunks and segments
+│   ├── temporal.py                # as-of validity + version chains
+│   ├── embeddings.py              # fastembed / hashing fallback
+│   ├── store.py                   # Qdrant local, numpy store, BM25
+│   ├── retriever.py               # HybridTemporalRetriever
+│   └── build_index.py             # idempotent index builder
+├── agents/
+│   ├── graph.py                   # LangGraph StateGraph + sequential fallback
+│   ├── pipeline.py                # run_analysis() public entry point
+│   ├── schemas.py                 # final JSON schema helpers
+│   ├── state.py                   # shared graph state
+│   ├── llm.py                     # adapter around app.inference
+│   └── nodes/                     # research, checker, advisory, verifier
 ├── app/
-│   ├── main.py             # FastAPI server
-│   ├── inference.py        # base model + LoRA adapter, lazily loaded
-│   ├── extract.py          # PDF / TXT text extraction
-│   └── templates/index.html
-├── shared/
-│   └── prompt_format.py    # ONE prompt definition, used by both sides
-├── tests/test_pipeline.py  # no GPU or trained model required
-└── docs/                   # the Practical 1 spec
+│   ├── main.py                    # FastAPI routes
+│   ├── inference.py               # lazy adapter loading + generate()
+│   ├── extract.py                 # PDF/TXT/MD/CSV extraction
+│   ├── report.py                  # ReportLab PDF report
+│   └── templates/index.html       # multi-finding UI
+├── scripts/
+│   ├── build_rag_index.py
+│   ├── run_pipeline.py
+│   └── evaluate.py
+├── config/
+│   ├── rag.yaml
+│   └── agents.yaml
+├── train/                         # unchanged QLoRA pipeline
+├── shared/prompt_format.py        # training + inference prompt source
+├── tests/
+│   ├── test_pipeline.py           # original 22 checks
+│   ├── test_rag.py
+│   ├── test_agents.py
+│   ├── test_evaluate.py
+│   └── test_report.py
+├── storage/                       # gitignored: index artifacts
+└── reports/                       # gitignored: generated PDFs / eval output
 ```
 
-`shared/prompt_format.py` matters more than it looks. If training and
-inference build prompts even slightly differently, the model looks like it
-learned nothing and the cause is very hard to spot. Both sides import it.
+`train/`, `data/make_dataset.py` and `requirements-train.txt` are untouched.
+`shared/prompt_format.py` only gains optional arguments; when `regulations=None`
+the prompt is byte-for-byte the one used during fine-tuning.
 
 ---
 
-## Training laptop
+## Install
+
+Two environments, as in Practical 1. They never run at the same time.
+
+### Training laptop (RTX 3050 Ti, 4 GB)
 
 ```bash
-git clone <repo-url>
-cd financial-compliance-LLM-finetune-hybrid_rag
-
 python -m venv .venv
 .venv\Scripts\activate                 # Windows
 # source .venv/bin/activate            # Linux
 
-# PyTorch first, matched to your CUDA version:
 pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements-train.txt
 
-python train/train.py
+python train/train.py --dry-run        # checks the data only
+python train/train.py --max-steps 20   # GPU smoke test
+python train/train.py                  # full run
 ```
 
-Check the data pipeline before committing to a long run — this needs no GPU
-and prints exactly what the model will be trained on:
+The training pipeline is unchanged: checkpoints every 100 steps, at most three
+kept, `--resume` restores optimizer/scheduler/RNG, and `final/` is the handoff
+artifact. See the original sections below and `docs/RUNNING.md`.
+
+### Application machine (CPU / MPS / CUDA)
 
 ```bash
-python train/train.py --dry-run
+python -m venv .venv
+.venv\Scripts\activate
+
+# For CPU-only inference you can install torch from PyPI:
+pip install torch
+pip install -r requirements-app.txt
 ```
 
-### Interrupting and resuming
+`requirements-app.txt` pulls in `requirements-rag.txt` (LangGraph, Qdrant
+client, fastembed, ReportLab, numpy).
 
-Press `Ctrl+C` at any point. Checkpoints are written every 100 steps to
-`models/financial-compliance-qwen/`, and the three most recent are kept.
+Then build the index and start the app:
 
 ```bash
-python train/train.py --resume
+python data/corpus/make_corpus.py       # only needed after editing the corpus
+python scripts/build_rag_index.py
+python app/main.py                      # http://127.0.0.1:8000
 ```
 
-This finds the highest-numbered `checkpoint-N` and restores the optimizer,
-the scheduler and the RNG state, not just the weights — so the resumed run is
-equivalent to one that never stopped. Watch the step counter: it should
-continue from where it stopped, **not** restart at 0. If no checkpoint exists,
-`--resume` starts a fresh run rather than failing.
+The app starts even if the adapter or the index is missing; the UI shows a
+banner explaining what is absent.
 
-### Settings that matter on 4 GB
+---
 
-All in `train/config.yaml`. Defaults are deliberately conservative:
+## Build or update the RAG index
+
+```bash
+python scripts/build_rag_index.py
+python scripts/build_rag_index.py --force
+python scripts/build_rag_index.py --embedder hashing --vector numpy
+```
+
+The builder is idempotent. It records the corpus hash, chunk count and embedding
+model in `storage/manifest.json`; an unchanged corpus is a no-op. Use `--force`
+after changing chunking settings or to switch backends.
+
+Backend selection:
+
+| Setting | Options | Behaviour |
+|---|---|---|
+| `--embedder` | `auto`, `fastembed`, `hashing` | `auto` uses fastembed when installed, otherwise deterministic hashing |
+| `--vector` | `auto`, `qdrant`, `numpy` | `auto` uses Qdrant local mode when installed, otherwise numpy |
+
+`fastembed` downloads the embedding model on first use. For a fully offline
+machine, use `--embedder hashing`; retrieval quality is lower but the whole
+pipeline remains functional.
+
+To add real regulations later, add JSONL records with the same schema to
+`data/corpus/regulations.jsonl` (or point `--corpus` at a new file) and rerun
+the builder with `--force`. Fields:
+
+```json
+{"doc_id": "...", "title": "...", "authority": "RBI", "section": "4.1",
+ "category": "kyc_aml", "text": "...", "effective_date": "2023-11-07",
+ "last_updated": "2024-06-20", "superseded_by": null, "superseded_date": null,
+ "status": "current", "url": null, "source": "synthetic"}
+```
+
+---
+
+## Run the multi-agent pipeline
+
+```bash
+# full pipeline, human-readable
+python scripts/run_pipeline.py --file docs/sample-document.txt --as-of 2024-06-01
+
+# structured JSON
+python scripts/run_pipeline.py --file docs/sample-document.txt --json
+
+# also write a PDF report
+python scripts/run_pipeline.py --file docs/sample-document.txt --report reports/demo.pdf
+
+# Practical 1 single-model path (no retrieval)
+python scripts/run_pipeline.py --file docs/sample-document.txt --mode single
+```
+
+The registry of relevant regulations depends on the as-of date. For example,
+KYC queries before 2023-11-07 resolve to `rbi-kyc-md-2016`; later queries resolve
+to `rbi-kyc-md-2023`.
+
+Web app routes:
+
+| Route | Purpose |
+|---|---|
+| `GET /` | upload form and results page |
+| `POST /analyze` | HTML analysis through the agent graph |
+| `POST /api/analyze` | same analysis as JSON |
+| `POST /report` | stateless PDF download (analysis JSON is posted back) |
+| `GET /health` | adapter, index, mode and graph backend status |
+
+Set `PIPELINE_MODE=single` to use the original single-model path:
+
+```bash
+PIPELINE_MODE=single python app/main.py          # Linux/macOS
+$env:PIPELINE_MODE="single"; python app/main.py  # Windows PowerShell
+```
+
+---
+
+## Evaluation
+
+Train the adapter and build the index first, then:
+
+```bash
+python scripts/evaluate.py --limit 10
+python scripts/evaluate.py --limit 0 --mode agents --as-of 2024-06-01
+python scripts/evaluate.py --limit 10 --no-advisory   # faster
+```
+
+The script runs the full pipeline on `data/eval.jsonl` and reports verdict
+accuracy, category/severity/citation accuracy, JSON validity, confusion matrix,
+per-category recall and latency. Results are written to
+`reports/eval-<timestamp>.json` and `.md`.
+
+The evaluation is intentionally small and the dataset is synthetic, so the
+numbers measure pipeline behaviour, not real compliance expertise.
+
+---
+
+## Tests
+
+```bash
+python tests/test_pipeline.py      # original 22 checks, no GPU/model
+python tests/test_rag.py           # corpus, temporal, hybrid retrieval
+python tests/test_agents.py        # graph and schemas with a stub LLM
+python tests/test_evaluate.py      # evaluation metric calculations
+python tests/test_report.py        # PDF generation (skips without reportlab)
+```
+
+All tests run without a GPU or a trained adapter. The agent tests inject a stub
+model and retriever, so they validate graph wiring, deduplication, citations and
+temporal retrieval deterministically.
+
+---
+
+## Training reference (unchanged)
+
+All hyperparameters live in `train/config.yaml`. Defaults are tuned for 4 GB:
 
 | Setting | Value | Why |
 |---|---|---|
@@ -110,94 +351,71 @@ All in `train/config.yaml`. Defaults are deliberately conservative:
 | `gradient_accumulation_steps` | 16 | effective batch of 16 without the memory |
 | `load_in_4bit` / `nf4` | on | the base model fits in well under 1 GB |
 | `gradient_checkpointing` | on | trades compute for memory |
-| `optim` | `paged_adamw_8bit` | paged optimiser survives VRAM spikes |
-| `save_steps` | 100 | how much work an interruption can cost you |
+| `optim` | `paged_adamw_8bit` | survives VRAM spikes |
+| `save_steps` | 100 | how much work an interruption can cost |
 | `save_total_limit` | 3 | bounded disk use |
 
-**If you hit CUDA out-of-memory:** lower `max_seq_length` to 256 first, then
-`lora.r` to 8. Only after that consider a smaller base model. Close anything
-using the GPU — a browser can hold several hundred MB.
+If you hit CUDA out-of-memory, lower `max_seq_length` to 256 first, then
+`lora.r` to 8.
 
-Qwen2.5-0.5B is the default. `train/config.yaml` also accepts
-`Qwen/Qwen2.5-1.5B-Instruct` or `TinyLlama/TinyLlama-1.1B-Chat-v1.0`, but for
-Practical 1 a run that finishes beats a bigger model that OOMs.
-
-### Handing the model over
-
-Copy **only** this folder to the application machine, to the same path:
-
-```text
-models/financial-compliance-qwen/final/
-```
-
-Intermediate checkpoints stay on the training laptop.
-
----
-
-## Application machine
+**Resuming.** Press `Ctrl+C`, then:
 
 ```bash
-pip install -r requirements-app.txt
-python app/main.py                     # http://127.0.0.1:8000
+python train/train.py --resume
 ```
 
-No `bitsandbytes` and no CUDA — inference runs in fp16 on GPU or Apple
-Silicon, fp32 on CPU. The 0.5B model is comfortable on CPU.
+It finds the highest-numbered checkpoint and restores optimizer, scheduler and
+RNG state. With no checkpoint it starts a fresh run instead of failing.
 
-The app **starts whether or not the model has been trained.** With no adapter
-present it serves the page, still accepts uploads and still extracts text, and
-shows a banner explaining what is missing. That way the UI can be built and
-demonstrated while training is still running on the other laptop.
-
-Upload a PDF, TXT, MD or CSV file. The first ~1200 characters are sent to the
-model and the structured verdict is displayed, alongside the exact snippet
-that was analysed. Whole-document chunking arrives with the Hybrid RAG stage.
+**Handoff.** Copy only `models/financial-compliance-qwen/final/` to the
+application machine. Model weights are gitignored; never commit them.
 
 ---
 
-## Tests
+## Dataset
 
-```bash
-python tests/test_pipeline.py
-```
+`data/train.jsonl` (250) and `data/eval.jsonl` (60) are synthetic, generated by
+`data/make_dataset.py` with a fixed seed. They cover seven violation categories
+plus compliant examples. The regulatory corpus is a separate, independently
+versioned synthetic corpus in `data/corpus/`.
 
-No GPU, no trained model, no pytest. Covers checkpoint discovery (what
-`--resume` relies on), tolerance of malformed model output, and the web
-routes including upload failure paths.
-
----
-
-## The dataset
-
-`data/train.jsonl` is **synthetic**, generated from templates by
-`data/make_dataset.py` with a fixed seed. 250 training and 60 eval examples
-across seven violation categories plus compliant examples, split roughly 70/30
-issue-to-clean.
-
-It is sized to prove the fine-tuning pipeline works, not to teach real
-compliance judgement. Replace it with a real corpus when one is available —
-nothing else has to change, as long as the record shape is kept:
-
-```json
-{"instruction": "...", "input": "<document snippet>", "output": "{\"issue_found\": true, ...}"}
-```
+Neither dataset is a real compliance corpus. Replace them with real data when
+available; the record shapes are documented in the generators.
 
 ---
 
-## Deliberately out of scope for Practical 1
+## Troubleshooting
 
-Hybrid RAG and vector search, a regulatory corpus, citing specific
-regulations, evaluation and benchmarking, authentication, persistence,
-multi-document comparison, deployment, and any model beyond ~1.5B parameters.
+| Symptom | Fix |
+|---|---|
+| `No RAG index` banner | `python scripts/build_rag_index.py` |
+| `fastembed` download fails | Rebuild with `--embedder hashing` |
+| Qdrant lock error | Stop other processes using `storage/qdrant`, or use `--vector numpy` |
+| PDF button returns 503 | `pip install reportlab` (included in requirements) |
+| `CUDA out of memory` | Lower `max_seq_length`, then `lora.r`; close GPU-using apps |
+| Resume restarts at step 0 | You omitted `--resume`, or no `checkpoint-*` exists |
+| `Model not trained yet` | Copy `models/.../final/` to the application machine |
+| Unstructured reply | A 0.5B model sometimes ignores JSON; the verifier keeps the raw text and lowers confidence |
+| Scanned PDF rejected | No selectable text; OCR is not implemented |
+
+---
+
+## Deliberately out of scope
+
+Authentication, multi-user support, persistence/history, deployment and CI/CD
+remain out of scope. The corpus is synthetic and small; the model is a 0.5B
+adapter. The system demonstrates the architecture and keeps the door open for
+larger models, real corpora and a hosted vector database.
 
 ## Acceptance checklist
 
 - [ ] `python train/train.py --dry-run` prints the data stats
 - [ ] `python train/train.py` runs on the 4 GB laptop without OOM
-- [ ] `checkpoint-*` folders appear during training
 - [ ] `Ctrl+C`, then `--resume`, continues from the saved step
-- [ ] `models/financial-compliance-qwen/final/` exists when training ends
-- [ ] `python app/main.py` starts on the application machine
-- [ ] an uploaded document produces a structured verdict
-- [ ] the disclaimer is visible on screen
-- [ ] `python tests/test_pipeline.py` passes on a fresh clone
+- [ ] `models/financial-compliance-qwen/final/` exists after training
+- [ ] `python scripts/build_rag_index.py` creates `storage/manifest.json`
+- [ ] a pre-2023 query cites `rbi-kyc-md-2016`; a 2024 query cites `rbi-kyc-md-2023`
+- [ ] `python scripts/run_pipeline.py --file docs/sample-document.txt` returns cited findings
+- [ ] `python app/main.py` shows the multi-finding UI and downloads a PDF
+- [ ] `python scripts/evaluate.py --limit 10` writes a metrics report
+- [ ] all test files pass on a fresh clone

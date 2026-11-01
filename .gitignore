@@ -10,6 +10,12 @@ checkpoint-*/
 uploads/
 logs/
 *.log
+storage/
+reports/
+
+# --- corpus source documents (keep the folder, not the uploads) ---
+data/corpus/raw/*
+!data/corpus/raw/.gitkeep
 
 # --- python ---
 __pycache__/

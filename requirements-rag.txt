@@ -1,0 +1,10 @@
+# Retrieval + multi-agent + reporting stack.
+# Optional at runtime: the code falls back to deterministic hashing embeddings,
+# a numpy vector store and a sequential graph runner when these are absent.
+
+numpy>=1.26.0
+PyYAML>=6.0
+langgraph>=0.2.0
+qdrant-client>=1.9.0
+fastembed>=0.3.0
+reportlab>=4.1.0

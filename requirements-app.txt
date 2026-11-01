@@ -1,6 +1,8 @@
 # Application machine only. No CUDA, no bitsandbytes.
 # Runs on CPU, Apple Silicon (MPS) or GPU.
 
+-r requirements-rag.txt
+
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9   # required by FastAPI for file uploads
