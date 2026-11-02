@@ -105,14 +105,18 @@ class QdrantVectorStore:
 
     backend = "qdrant"
 
-    def __init__(self, path: str | Path, collection: str) -> None:
+    def __init__(
+        self, path: str | Path, collection: str, require_existing: bool = True
+    ) -> None:
         from qdrant_client import QdrantClient
 
         self.collection = collection
         self.client = QdrantClient(path=str(path))
-        names = {item.name for item in self.client.get_collections().collections}
-        if collection not in names:
-            raise RuntimeError(f"Qdrant collection {collection!r} does not exist")
+        if require_existing:
+            names = {item.name for item in self.client.get_collections().collections}
+            if collection not in names:
+                self.close()
+                raise RuntimeError(f"Qdrant collection {collection!r} does not exist")
 
     def recreate(self, dim: int) -> None:
         from qdrant_client.http import models as qmodels
@@ -207,14 +211,19 @@ def write_vector_index(
                 "superseded_date", "status", "url", "source",
             )
         })
+    store = None
     try:
-        store = QdrantVectorStore(directory / "qdrant", collection)
+        store = QdrantVectorStore(
+            directory / "qdrant", collection, require_existing=False)
         store.recreate(len(vectors[0]))
         store.upsert(ids, vectors, payloads)
         return "qdrant"
     except Exception as exc:
         LOG.warning("Qdrant index failed (%s); using the numpy vector store.", exc)
         return "numpy"
+    finally:
+        if store is not None:
+            store.close()
 
 
 def load_vector_index(

@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 from agents.config import load_agents_config
 from agents.graph import SequentialGraph, build_graph
 from agents.nodes.advisory import advisory_node, template_fix
-from agents.nodes.verifier import verifier_node
+from agents.nodes.verifier import _choose_citation, verifier_node
 from agents.pipeline import run_analysis
 from agents.schemas import validate_result
 from rag.retriever import RetrievedChunk
@@ -182,6 +182,55 @@ class VerifierTests(unittest.TestCase):
         update = advisory_node(state, llm=None, config=config)
         self.assertIn("itemised", update["violations"][0]["suggested_fix"])
         self.assertIn("itemised", template_fix("fee_transparency"))
+
+    def test_citation_requires_matching_category(self):
+        fee = dict(METADATA, category="fee_transparency", doc_id="sebi-fees-2022")
+        regulations = [{"chunk_id": "fee::0", "metadata": fee, "score": 0.9}]
+        self.assertIsNone(_choose_citation(regulations, "kyc_aml"))
+
+    def test_citation_prefers_newer_version_on_tie(self):
+        old = dict(METADATA, doc_id="rbi-kyc-md-2016", effective_date="2016-01-01")
+        new = dict(METADATA, doc_id="rbi-kyc-md-2023", effective_date="2023-11-07")
+        regulations = [
+            {"chunk_id": "old::0", "metadata": old, "score": 0.032},
+            {"chunk_id": "new::0", "metadata": new, "score": 0.032},
+        ]
+        citation = _choose_citation(regulations, "kyc_aml")
+        self.assertEqual(citation["doc_id"], "rbi-kyc-md-2023")
+
+    def test_advisory_rejects_unverified_numbers(self):
+        class PercentLLM:
+            def generate(self, messages, max_new_tokens=90):
+                return "A fee of 2% per annum applies."
+
+        state = {
+            "violations": [{
+                "category": "fee_transparency",
+                "original_snippet": "An annual management fee applies.",
+                "_regulations": [],
+            }],
+            "trace": [],
+            "errors": [],
+        }
+        update = advisory_node(state, llm=PercentLLM(), config=load_agents_config())
+        self.assertIn("itemised", update["violations"][0]["suggested_fix"])
+
+    def test_advisory_rejects_echoed_prefix(self):
+        class EchoLLM:
+            def generate(self, messages, max_new_tokens=90):
+                return "Additional charges may apply"
+
+        state = {
+            "violations": [{
+                "category": "fee_transparency",
+                "original_snippet": "Additional charges may apply as set out separately.",
+                "_regulations": [],
+            }],
+            "trace": [],
+            "errors": [],
+        }
+        update = advisory_node(state, llm=EchoLLM(), config=load_agents_config())
+        self.assertIn("itemised", update["violations"][0]["suggested_fix"])
 
     def test_graph_always_exposes_invoke(self):
         graph = build_graph(

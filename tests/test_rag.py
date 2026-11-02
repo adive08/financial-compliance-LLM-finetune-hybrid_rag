@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from rag.build_index import build_index
-from rag.chunking import chunk_corpus, split_text
+from rag.chunking import chunk_corpus, split_segments, split_text
 from rag.corpus import load_corpus
 from rag.retriever import HybridTemporalRetriever, index_status
 from rag.store import BM25
@@ -60,6 +60,23 @@ class ChunkingTests(unittest.TestCase):
     def test_short_text_single_chunk(self):
         self.assertEqual(split_text("One short sentence.", 700, 100),
                          ["One short sentence."])
+
+    def test_segments_prefer_paragraphs(self):
+        text = (
+            "ACME CAPITAL\nCLIENT INFORMATION SHEET\n\n"
+            + "Guaranteed returns are described in detail. " * 4
+            + "\n\n"
+            + "Fees are disclosed in the cost table. " * 6
+            + "\n\nContact us."
+        )
+        segments = split_segments(text, max_chars=300, overlap=60)
+        self.assertEqual(len(segments), 2)
+        self.assertTrue(segments[0].startswith("ACME CAPITAL"))
+        self.assertIn("Guaranteed", segments[0])
+        self.assertIn("Fees", segments[1])
+        self.assertIn("Contact us.", segments[1])
+        for segment in segments:
+            self.assertLessEqual(len(segment), 300)
 
     def test_chunk_ids_unique(self):
         records = load_corpus()
@@ -138,6 +155,41 @@ class HybridRetrievalTests(unittest.TestCase):
         ranked = index.search("kyc identity verification".split(), limit=3)
         self.assertTrue(ranked)
         self.assertGreater(ranked[0][1], 0)
+
+
+class QdrantIndexTests(unittest.TestCase):
+    def setUp(self):
+        try:
+            import qdrant_client  # noqa: F401
+        except ImportError:
+            self.skipTest("qdrant-client not installed")
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.storage = Path(self.tempdir.name)
+        self.build = build_index(
+            storage_dir=self.storage,
+            force=True,
+            embedder_backend="hashing",
+            vector_backend="qdrant",
+        )
+
+    def tearDown(self):
+        self.tempdir.cleanup()
+
+    def test_qdrant_index_is_created_and_reopenable(self):
+        self.assertEqual(self.build["vector_backend"], "qdrant")
+        self.assertTrue((self.storage / "qdrant").exists())
+        retriever = HybridTemporalRetriever(storage_dir=self.storage)
+        try:
+            self.assertTrue(retriever.ready, retriever.reason)
+            hits = retriever.retrieve(
+                "identity verification and source of funds before opening an account",
+                as_of_date="2024-06-01",
+                top_k=5,
+            )
+            doc_ids = [hit.metadata["doc_id"] for hit in hits]
+            self.assertIn("rbi-kyc-md-2023", doc_ids)
+        finally:
+            retriever.close()
 
 
 if __name__ == "__main__":

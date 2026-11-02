@@ -86,8 +86,14 @@ Use `PORT=8080 python app/main.py` if 8000 is taken. The app starts whether or
 not the adapter and index exist; missing pieces are shown as banners.
 
 To demo, upload [sample-document.txt](sample-document.txt) with an as-of date of
-`2024-06-01`. It should produce several findings with citations to the 2023 KYC
-regulation, the advertising code and the fee disclosure rules.
+`2024-06-01`. With the trained adapter this produces four findings:
+
+- two `misleading_performance` findings citing `sebi-past-perf-2022`
+- one `kyc_aml` finding citing `rbi-kyc-md-2023`
+- one `fee_transparency` finding citing `sebi-fees-2022`
+
+Re-run with `2020-06-01` to show the KYC citation switching to
+`rbi-kyc-md-2016`. The demo document deliberately contains more than one issue.
 
 ### Offline / low-dependency mode
 

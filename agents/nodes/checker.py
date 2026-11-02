@@ -14,6 +14,7 @@ def checker_node(state, llm, config=None) -> dict:
     research_cfg = (config or {}).get("research", {})
     max_segments = int(cfg.get("max_segments", 6))
     max_context_chars = int(research_cfg.get("max_context_chars", 900))
+    include_in_prompt = bool(research_cfg.get("include_in_prompt", False))
     segments = state.get("segments", [])[:max_segments]
     per_segment = state.get("segment_regulations", {})
     fallback = state.get("retrieved", [])
@@ -28,10 +29,15 @@ def checker_node(state, llm, config=None) -> dict:
 
     for segment in segments:
         regulations = per_segment.get(str(segment["index"])) or fallback[:3]
+        citation_pool = {
+            item.get("chunk_id"): item
+            for item in list(regulations) + list(fallback)
+            if item.get("chunk_id")
+        }
         try:
             parsed = llm.analyze(
                 segment["text"],
-                regulations=regulations or None,
+                regulations=(regulations or None) if include_in_prompt else None,
                 max_regulation_chars=max_context_chars,
             )
         except ModelUnavailable:
@@ -57,7 +63,7 @@ def checker_node(state, llm, config=None) -> dict:
             "original_snippet": segment["text"],
             "suggested_fix": "",
             "cited_regulation": None,
-            "_regulations": regulations,
+            "_regulations": list(citation_pool.values()),
         })
 
     trace.append(

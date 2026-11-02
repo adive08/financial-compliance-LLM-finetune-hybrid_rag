@@ -2,8 +2,8 @@ pipeline:
   # agents -> LangGraph multi-agent pipeline; single -> Practical 1 path
   mode: "agents"
   max_segments: 6
-  segment_chars: 1200
-  segment_overlap: 120
+  segment_chars: 300
+  segment_overlap: 60
   max_violations: 12
 
 research:
@@ -11,6 +11,9 @@ research:
   per_segment_k: 3
   max_regulations: 12
   max_context_chars: 900
+  # The 0.5B adapter was trained on short snippets without retrieved text.
+  # Keep regulations out of its prompt; retrieval still grounds the citations.
+  include_in_prompt: false
 
 advisory:
   use_model: true

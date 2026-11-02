@@ -77,6 +77,49 @@ def split_text(text: str, max_chars: int = 700, overlap: int = 100) -> list[str]
     return chunks
 
 
+def split_segments(
+    text: str,
+    max_chars: int = 300,
+    overlap: int = 60,
+    min_paragraph_chars: int = 80,
+) -> list[str]:
+    """Split a document for analysis, preferring paragraph boundaries.
+
+    Short lines (titles, footers, contact lines) are merged into a neighbour so
+    the model does not judge a heading as if it were a standalone claim.
+    """
+    paragraphs = [
+        _normalise(part)
+        for part in re.split(r"\n\s*\n", text or "")
+        if _normalise(part)
+    ]
+    merged: list[str] = []
+    index = 0
+    while index < len(paragraphs):
+        paragraph = paragraphs[index]
+        if len(paragraph) < min_paragraph_chars and len(paragraphs) > 1:
+            if index + 1 < len(paragraphs) and (
+                len(paragraph) + 1 + len(paragraphs[index + 1]) <= max_chars
+            ):
+                merged.append(f"{paragraph} {paragraphs[index + 1]}")
+                index += 2
+                continue
+            if merged and len(merged[-1]) + 1 + len(paragraph) <= max_chars:
+                merged[-1] = f"{merged[-1]} {paragraph}"
+                index += 1
+                continue
+        merged.append(paragraph)
+        index += 1
+
+    segments: list[str] = []
+    for paragraph in merged:
+        if len(paragraph) <= max_chars:
+            segments.append(paragraph)
+        else:
+            segments.extend(split_text(paragraph, max_chars=max_chars, overlap=overlap))
+    return segments
+
+
 def chunk_document(record: dict, max_chars: int = 700, overlap: int = 100) -> list[dict]:
     """Turn one corpus record into one or more retrievable chunks."""
     pieces = split_text(record["text"], max_chars=max_chars, overlap=overlap)

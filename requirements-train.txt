@@ -5,10 +5,10 @@
 # then:
 #   pip install -r requirements-train.txt
 
-transformers>=4.44.0
+transformers>=4.44.0,<5   # transformers 5.x requires torch >= 2.6
 peft>=0.12.0
 bitsandbytes>=0.43.0     # CUDA-only: 4-bit quantization
 accelerate>=0.33.0
-datasets>=2.20.0
+datasets>=2.20.0,<4      # datasets 5.x requires huggingface-hub >= 1.31
 sentencepiece>=0.2.0
 PyYAML>=6.0

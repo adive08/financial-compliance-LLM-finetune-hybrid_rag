@@ -15,7 +15,7 @@ from agents.schemas import (
     category_label,
     severity,
 )
-from rag.chunking import split_text
+from rag.chunking import split_segments
 from rag.config import load_rag_config, manifest_path, storage_dir
 from rag.retriever import HybridTemporalRetriever
 
@@ -47,10 +47,10 @@ def _default_retriever() -> HybridTemporalRetriever:
 
 def _segments(text: str, config: dict) -> list[dict]:
     pipeline_cfg = config["pipeline"]
-    pieces = split_text(
+    pieces = split_segments(
         text,
-        max_chars=int(pipeline_cfg.get("segment_chars", 1200)),
-        overlap=int(pipeline_cfg.get("segment_overlap", 120)),
+        max_chars=int(pipeline_cfg.get("segment_chars", 300)),
+        overlap=int(pipeline_cfg.get("segment_overlap", 60)),
     )
     pieces = pieces[: int(pipeline_cfg.get("max_segments", 6))]
     return [{"index": index, "text": piece} for index, piece in enumerate(pieces)]

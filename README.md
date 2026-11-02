@@ -56,7 +56,7 @@ The project now has three layers:
 ### How a document flows
 
 1. Text is extracted from the upload and split into overlapping segments
-   (default 1200 characters, maximum 6 segments on a 4 GB machine).
+   (default 300 characters, maximum 6 segments on a 4 GB machine).
 2. **ResearchAgent** builds a query per segment plus a global query, searches the
    hybrid index, merges duplicate chunks and applies the as-of temporal filter.
 3. **ComplianceCheckerAgent** calls the existing fine-tuned adapter once per
@@ -322,6 +322,23 @@ per-category recall and latency. Results are written to
 The evaluation is intentionally small and the dataset is synthetic, so the
 numbers measure pipeline behaviour, not real compliance expertise.
 
+Measured baseline on the 4 GB RTX 3050 laptop (10 evaluation samples, agents
+mode, `--no-advisory`, trained 0.5B adapter):
+
+| Metric | Result |
+|---|---|
+| Verdict accuracy | 70% |
+| Category accuracy (flagged) | 100% |
+| Severity accuracy (flagged) | 85.7% |
+| Citation accuracy (flagged) | 100% |
+| JSON validity | 100% |
+| Average latency | 9.85 s |
+| Max latency | 26.37 s (cold start) |
+
+The adapter still over-flags some compliant text (3 of 10 samples in this run),
+so verdict accuracy trails the category and citation scores. Treat this as a
+prototype baseline, not production accuracy.
+
 ---
 
 ## Tests
@@ -409,13 +426,13 @@ larger models, real corpora and a hosted vector database.
 
 ## Acceptance checklist
 
-- [ ] `python train/train.py --dry-run` prints the data stats
-- [ ] `python train/train.py` runs on the 4 GB laptop without OOM
-- [ ] `Ctrl+C`, then `--resume`, continues from the saved step
-- [ ] `models/financial-compliance-qwen/final/` exists after training
-- [ ] `python scripts/build_rag_index.py` creates `storage/manifest.json`
-- [ ] a pre-2023 query cites `rbi-kyc-md-2016`; a 2024 query cites `rbi-kyc-md-2023`
-- [ ] `python scripts/run_pipeline.py --file docs/sample-document.txt` returns cited findings
-- [ ] `python app/main.py` shows the multi-finding UI and downloads a PDF
-- [ ] `python scripts/evaluate.py --limit 10` writes a metrics report
-- [ ] all test files pass on a fresh clone
+- [x] `python train/train.py --dry-run` prints the data stats
+- [x] `python train/train.py` runs on the 4 GB laptop without OOM
+- [ ] `Ctrl+C`, then `--resume`, continues from the saved step (not exercised)
+- [x] `models/financial-compliance-qwen/final/` exists after training
+- [x] `python scripts/build_rag_index.py` creates `storage/manifest.json`
+- [x] a pre-2023 query cites `rbi-kyc-md-2016`; a 2024 query cites `rbi-kyc-md-2023`
+- [x] `python scripts/run_pipeline.py --file docs/sample-document.txt` returns cited findings
+- [x] `python app/main.py` shows the multi-finding UI and downloads a PDF
+- [x] `python scripts/evaluate.py --limit 10` writes a metrics report
+- [ ] all test files pass on a fresh clone (verified in the current checkout only)

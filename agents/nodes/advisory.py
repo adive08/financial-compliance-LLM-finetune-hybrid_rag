@@ -58,7 +58,13 @@ def _clean(text: str, original: str) -> str:
     candidate = re.split(r"\n\s*\n", candidate)[0].strip()
     if not candidate or len(candidate) < 20 or len(candidate) > 600:
         return ""
-    if re.sub(r"\s+", " ", candidate).lower() == re.sub(r"\s+", " ", original).lower():
+    normalised = re.sub(r"\s+", " ", candidate).strip().lower()
+    source = re.sub(r"\s+", " ", original or "").strip().lower()
+    if normalised in source or source in normalised:
+        return ""
+    numbers = set(re.findall(r"\d+(?:[.,]\d+)*%?", candidate))
+    source_numbers = set(re.findall(r"\d+(?:[.,]\d+)*%?", original or ""))
+    if not numbers.issubset(source_numbers):
         return ""
     if candidate.lower().startswith(("i ", "as an ai", "sure", "here is")):
         return ""

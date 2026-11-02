@@ -18,9 +18,17 @@ def _choose_citation(regulations: list[dict], category: str) -> dict | None:
         item for item in regulations
         if item.get("metadata", {}).get("category") == category
     ]
-    pool = matching or regulations
-    best = max(pool, key=lambda item: item.get("score") or 0)
-    return citation_from_chunk(best)
+    if not matching:
+        return None
+
+    def rank(item: dict) -> tuple[float, str]:
+        metadata = item.get("metadata", {})
+        return (
+            round(float(item.get("score") or 0), 2),
+            str(metadata.get("effective_date") or ""),
+        )
+
+    return citation_from_chunk(max(matching, key=rank))
 
 
 def _dedupe(violations: list[dict]) -> list[dict]:
